@@ -1,9 +1,9 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { Todo, TodoStats } from './models/todo.model';
+import { Todo } from './models/todo.model';
 import { TodoService } from './services/todo.service';
 import { WelcomeService } from './services/welcome.service';
 
@@ -19,7 +19,7 @@ import { WelcomeService } from './services/welcome.service';
 
       <div class="flex mb-8">
         <input
-          [(ngModel)]="newTaskDescription"
+          [ngModel]="newTaskDescription()" (ngModelChange)="newTaskDescription.set($event)"
           (keyup.enter)="addTask()"
           placeholder="What needs to be done? (Try adding a script tag!)"
           class="flex-grow p-3 border border-gray-300 rounded-l-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -35,15 +35,15 @@ import { WelcomeService } from './services/welcome.service';
       <div class="bg-white p-6 rounded-xl shadow-lg mb-8 border border-gray-200">
         <div class="flex justify-around items-center text-center mb-4">
           <div class="p-2">
-            <div class="text-3xl font-bold text-gray-800">{{ getStats().total }}</div>
+            <div class="text-3xl font-bold text-gray-800">{{ stats().total }}</div>
             <div class="text-sm text-gray-500">Total</div>
           </div>
           <div class="p-2">
-            <div class="text-3xl font-bold text-green-600">{{ getStats().completed }}</div>
+            <div class="text-3xl font-bold text-green-600">{{ stats().completed }}</div>
             <div class="text-sm text-gray-500">Completed</div>
           </div>
           <div class="p-2">
-            <div class="text-3xl font-bold text-red-500">{{ getStats().pending }}</div>
+            <div class="text-3xl font-bold text-red-500">{{ stats().pending }}</div>
             <div class="text-sm text-gray-500">Pending</div>
           </div>
         </div>
@@ -51,22 +51,21 @@ import { WelcomeService } from './services/welcome.service';
         <div class="mt-4">
           <div class="flex justify-between items-center mb-1">
             <span class="text-sm font-medium text-gray-700">Progress</span>
-            <span class="text-sm font-semibold text-gray-700">{{ getProgressPercentage() }}</span>
+            <span class="text-sm font-semibold text-gray-700">{{ progress() }}</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-2.5">
             <div
               class="bg-indigo-600 h-2.5 rounded-full transition-all duration-300"
-              [style.width]="getProgressPercentage()"
+              [style.width]="progress()"
             ></div>
           </div>
         </div>
       </div>
 
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Active ({{ getStats().pending }})</h2>
+      <h2 class="text-xl font-semibold text-gray-800 mb-4">Active ({{ stats().pending }})</h2>
       <div class="space-y-3 mb-8">
-        <ng-container *ngFor="let todo of todos">
+        <ng-container *ngFor="let todo of activeTodos()">
           <div
-            *ngIf="!todo.completed"
             class="flex items-center justify-between bg-white p-4 rounded-xl shadow-md transition duration-150 border border-gray-100 hover:shadow-lg"
           >
             <label class="flex items-center cursor-pointer flex-grow">
@@ -87,7 +86,7 @@ import { WelcomeService } from './services/welcome.service';
           </div>
         </ng-container>
         <div
-          *ngIf="getStats().pending === 0 && getStats().total > 0"
+          *ngIf="stats().pending === 0 && stats().total > 0"
           class="text-center text-gray-500 p-4"
         >
           All caught up!
@@ -95,12 +94,11 @@ import { WelcomeService } from './services/welcome.service';
       </div>
 
       <h2 class="text-xl font-semibold text-gray-800 mb-4">
-        Completed ({{ getStats().completed }})
+        Completed ({{ stats().completed }})
       </h2>
       <div class="space-y-3">
-        <ng-container *ngFor="let todo of todos">
+        <ng-container *ngFor="let todo of completedTodos()">
           <div
-            *ngIf="todo.completed"
             class="flex items-center justify-between bg-white p-4 rounded-xl shadow-md transition duration-150 border border-gray-100 opacity-70"
           >
             <label class="flex items-center cursor-pointer flex-grow">
@@ -121,7 +119,7 @@ import { WelcomeService } from './services/welcome.service';
           </div>
         </ng-container>
         <div
-          *ngIf="getStats().completed === 0 && getStats().total > 0"
+          *ngIf="stats().completed === 0 && stats().total > 0"
           class="text-center text-gray-500 p-4"
         >
           No completed tasks yet.
@@ -165,14 +163,15 @@ export class App implements OnInit, OnDestroy {
   private todoService = inject(TodoService);
   private welcomeService = inject(WelcomeService);
 
-  public newTaskDescription: string = '';
+  readonly newTaskDescription = signal('');
+  readonly stats = this.todoService.stats;
+  readonly progress = this.todoService.progress;
+  readonly activeTodos = this.todoService.activeTodos;
+  readonly completedTodos = this.todoService.completedTodos;
+
   public welcomeMessage: SafeHtml = 'Todo App';
 
   private welcomeSub: Subscription | undefined;
-
-  get todos(): Todo[] {
-    return this.todoService.todos;
-  }
 
   ngOnInit(): void {
     this.welcomeSub = this.welcomeService.fetchWelcomeMessage().subscribe((message: string) => {
@@ -184,28 +183,16 @@ export class App implements OnInit, OnDestroy {
     this.welcomeSub?.unsubscribe();
   }
 
-  public getStats(): TodoStats {
-    return this.todoService.getStats();
-  }
-
-  public getProgressPercentage(): string {
-    return this.todoService.getProgressPercentage();
-  }
-
   public addTask(): void {
-    this.todoService.add(this.newTaskDescription);
-    this.newTaskDescription = '';
+    this.todoService.add(this.newTaskDescription());
+    this.newTaskDescription.set('');
   }
 
   public toggleCompleted(todo: Todo): void {
-    this.todoService.toggle(todo);
+    this.todoService.toggle(todo.id);
   }
 
   public deleteTask(id: number): void {
     this.todoService.remove(id);
-  }
-
-  public trackByFn(index: number, todo: Todo): Todo {
-    return todo;
   }
 }
