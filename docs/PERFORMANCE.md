@@ -15,9 +15,9 @@ Anti-patterns present before refactoring:
 ### Profiler capture (before vs after)
 
 Method: headless Chrome driven by a script against the Angular dev server, hooked into Angular's
-profiler API (, the same hook Angular DevTools uses). Both versions get an identical
+profiler API (`ng.ɵsetProfiler`, the same hook Angular DevTools uses). Both versions get an identical
 workload: 5s of mouse movement over the component, 150 keystrokes in the input, 20 checkbox toggles.
-The baseline is commit ; the after is . Raw numbers: .
+The baseline is commit `7b9f78d`; the after is `main`. Raw numbers: `docs/profiling/*-metrics.json`.
 
 | Metric | Before | After |
 | --- | --- | --- |
@@ -28,19 +28,19 @@ The baseline is commit ; the after is . Raw numbers: .
 
 ![before vs after](profiling/comparison.png)
 
-Screenshots of the running app: , .
+Screenshots of the running app: `docs/profiling/before-app.png`, `docs/profiling/after-app.png`.
 
 ### Reading the numbers honestly
 
 - **Mouse movement alone triggers no change detection** in either version: the app has no
-   listener, so zone.js never schedules a cycle. The lab's premise (cycles while moving the
+  `mousemove` listener, so zone.js never schedules a cycle. The lab's premise (cycles while moving the
   mouse) only holds if a listener or timer exists. Keystrokes, clicks and toggles are what trigger cycles.
 - **The number of cycles is unchanged** (~165): zone.js runs one cycle per event, with or without
   OnPush. OnPush and signals reduce the *work inside* each cycle, which is why template update passes
-  fall by 81%: unchanged  child components are skipped, and nothing re-evaluates .
+  fall by 81%: unchanged `OnPush` child components are skipped, and nothing re-evaluates `getStats()`.
 - **Wall-clock CPU time was not measurably different** in this workload. In production builds, total
   task time over 3 runs each was 0.96 / 1.35 / 1.11 s before and 1.18 / 1.49 / 1.07 s after, which is
-  within noise, because the legacy busy loop () has an empty body and is optimized away by
+  within noise, because the legacy busy loop (`for (...) {}`) has an empty body and is optimized away by
   V8, and the run is dominated by simulated typing delays. The savings are real in terms of work
   performed and scale with list size, but they are not visible as a time difference here.
 
@@ -66,4 +66,4 @@ interpolation.
 
 ## Optional manual step
 
-For a manual cross-check, repeat the recording in Chrome DevTools > Performance and Angular DevTools > Profiler against  and .
+For a manual cross-check, repeat the recording in Chrome DevTools > Performance and Angular DevTools > Profiler against `7b9f78d` and `main`.
