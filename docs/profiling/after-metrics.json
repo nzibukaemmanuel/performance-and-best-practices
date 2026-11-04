@@ -1,0 +1,31 @@
+{
+  "label": "after",
+  "mouseMoves": 147,
+  "mousePhase": {
+    "changeDetectionCycles": 0,
+    "templateUpdatePasses": 0
+  },
+  "tickHooked": true,
+  "changeDetectionCycles": 167,
+  "templateUpdatePasses": 444,
+  "rawEvents": {
+    "0": 50,
+    "1": 50,
+    "2": 444,
+    "3": 444,
+    "4": 147,
+    "5": 147,
+    "6": 360,
+    "7": 360,
+    "12": 167,
+    "13": 167,
+    "14": 167,
+    "15": 167,
+    "18": 995,
+    "19": 995,
+    "24": 294,
+    "25": 294
+  },
+  "scriptSeconds": 0.2027,
+  "taskSeconds": 1.4522
+}
