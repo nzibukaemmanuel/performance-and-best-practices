@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Subscription } from 'rxjs';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Todo } from './models/todo.model';
 import { TodoService } from './services/todo.service';
@@ -9,11 +11,11 @@ import { WelcomeService } from './services/welcome.service';
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule],
+  imports: [FormsModule, AsyncPipe],
   template: `
     <div class="max-w-xl mx-auto p-4 bg-gray-50 min-h-screen">
       <header class="text-center mb-8">
-        <h1 class="text-3xl font-extrabold text-gray-800" [innerHTML]="welcomeMessage"></h1>
+        <h1 class="text-3xl font-extrabold text-gray-800" [innerHTML]="(welcomeMessage$ | async) ?? 'Todo App'"></h1>
         <p class="text-gray-500 mt-1">A legacy app built for refactoring practice</p>
       </header>
 
@@ -152,7 +154,7 @@ import { WelcomeService } from './services/welcome.service';
     `,
   ],
 })
-export class App implements OnInit, OnDestroy {
+export class App {
   private sanitizer = inject(DomSanitizer);
   private todoService = inject(TodoService);
   private welcomeService = inject(WelcomeService);
@@ -163,19 +165,10 @@ export class App implements OnInit, OnDestroy {
   readonly activeTodos = this.todoService.activeTodos;
   readonly completedTodos = this.todoService.completedTodos;
 
-  public welcomeMessage: SafeHtml = 'Todo App';
-
-  private welcomeSub: Subscription | undefined;
-
-  ngOnInit(): void {
-    this.welcomeSub = this.welcomeService.fetchWelcomeMessage().subscribe((message: string) => {
-      this.welcomeMessage = this.sanitizer.bypassSecurityTrustHtml(message);
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.welcomeSub?.unsubscribe();
-  }
+  // Subscription is owned by the async pipe, so no ngOnInit/ngOnDestroy needed.
+  readonly welcomeMessage$: Observable<SafeHtml> = this.welcomeService.welcomeMessage$.pipe(
+    map((message) => this.sanitizer.bypassSecurityTrustHtml(message)),
+  );
 
   public addTask(): void {
     this.todoService.add(this.newTaskDescription());
