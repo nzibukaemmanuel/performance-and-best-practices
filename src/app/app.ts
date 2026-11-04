@@ -1,9 +1,9 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, SecurityContext, inject, signal } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { Todo } from './models/todo.model';
 import { TodoService } from './services/todo.service';
 import { WelcomeService } from './services/welcome.service';
@@ -77,7 +77,7 @@ import { WelcomeService } from './services/welcome.service';
                 (change)="toggleCompleted(todo)"
                 class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-4"
               />
-              <span class="text-gray-700" [innerHTML]="todo.description"></span>
+              <span class="text-gray-700">{{ todo.description }}</span>
             </label>
             <button
               (click)="deleteTask(todo.id)"
@@ -107,7 +107,7 @@ import { WelcomeService } from './services/welcome.service';
                 (change)="toggleCompleted(todo)"
                 class="form-checkbox h-5 w-5 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 mr-4"
               />
-              <span class="text-gray-700 line-through" [innerHTML]="todo.description"></span>
+              <span class="text-gray-700 line-through">{{ todo.description }}</span>
             </label>
             <button
               (click)="deleteTask(todo.id)"
@@ -166,8 +166,9 @@ export class App {
   readonly completedTodos = this.todoService.completedTodos;
 
   // Subscription is owned by the async pipe, so no ngOnInit/ngOnDestroy needed.
-  readonly welcomeMessage$: Observable<SafeHtml> = this.welcomeService.welcomeMessage$.pipe(
-    map((message) => this.sanitizer.bypassSecurityTrustHtml(message)),
+  // sanitize() strips <script>, event handlers and unsafe URLs; never use bypassSecurityTrust* on untrusted input.
+  readonly welcomeMessage$: Observable<string> = this.welcomeService.welcomeMessage$.pipe(
+    map((message) => this.sanitizer.sanitize(SecurityContext.HTML, message) ?? ''),
   );
 
   public addTask(): void {

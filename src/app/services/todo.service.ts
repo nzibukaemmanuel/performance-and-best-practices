@@ -29,11 +29,8 @@ export class TodoService {
     const trimmed = description.trim();
     if (!trimmed) return;
 
-    let text = trimmed;
-    if (text.toLowerCase().includes('<script>')) {
-      text = `<span style="color: red;">[Script Detected]</span> ` + text;
-    }
-    const todo: Todo = { id: this.nextId++, description: text, completed: false };
+    // Stored as plain text; the template renders it with interpolation, which escapes HTML.
+    const todo: Todo = { id: this.nextId++, description: trimmed, completed: false };
     this._todos.update((list) => [...list, todo]);
   }
 
