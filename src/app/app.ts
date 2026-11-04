@@ -1,9 +1,11 @@
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Observable, Subscription, of } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { Todo, TodoStats } from './models/todo.model';
+import { TodoService } from './services/todo.service';
+import { WelcomeService } from './services/welcome.service';
 
 @Component({
   selector: 'app-root',
@@ -160,91 +162,47 @@ import { Todo, TodoStats } from './models/todo.model';
 })
 export class App implements OnInit, OnDestroy {
   private sanitizer = inject(DomSanitizer);
+  private todoService = inject(TodoService);
+  private welcomeService = inject(WelcomeService);
 
-  public todos: Todo[] = [];
   public newTaskDescription: string = '';
   public welcomeMessage: SafeHtml = 'Todo App';
-  private nextId: number = 3;
 
   private welcomeSub: Subscription | undefined;
 
-  constructor() {
-    console.log('App component initialized (Monolithic Structure)');
-  }
-
-  private simulateFetchWelcomeMessage(): Observable<string> {
-    console.log('API Call: Fetching welcome message (no caching)');
-    return of(
-      '<span style="color: #4f46e5; font-weight: bold;">My Refactoring App (Sanitized)</span><script>console.warn("SECURITY WARNING: XSS vulnerability active in header!");</script>'
-    );
+  get todos(): Todo[] {
+    return this.todoService.todos;
   }
 
   ngOnInit(): void {
-    this.todos = [
-      { id: 1, description: 'Build a project', completed: false },
-      { id: 2, description: 'Learn React', completed: true },
-    ];
-
-    this.welcomeSub = this.simulateFetchWelcomeMessage().subscribe((message: string) => {
+    this.welcomeSub = this.welcomeService.fetchWelcomeMessage().subscribe((message: string) => {
       this.welcomeMessage = this.sanitizer.bypassSecurityTrustHtml(message);
     });
   }
 
   ngOnDestroy(): void {
-    if (this.welcomeSub) {
-      this.welcomeSub.unsubscribe();
-      console.log('RxJS: Welcome message manually unsubscribed in ngOnDestroy.');
-    }
+    this.welcomeSub?.unsubscribe();
   }
 
   public getStats(): TodoStats {
-    const total = this.todos.length;
-    const completed = this.todos.filter((t: Todo) => t.completed).length;
-    const pending = total - completed;
-
-    for (let i = 0; i < 10000; i++) {}
-
-    return { total, completed, pending };
+    return this.todoService.getStats();
   }
 
   public getProgressPercentage(): string {
-    const stats = this.getStats();
-    if (stats.total === 0) return '0%';
-
-    const percentage = Math.round((stats.completed / stats.total) * 100);
-    return `${percentage}%`;
+    return this.todoService.getProgressPercentage();
   }
 
   public addTask(): void {
-    if (!this.newTaskDescription.trim()) {
-      return;
-    }
-
-    let description = this.newTaskDescription.trim();
-    if (description.toLowerCase().includes('<script>')) {
-      description = `<span style="color: red;">[Script Detected]</span> ` + description;
-    }
-
-    const newTodo: Todo = {
-      id: this.nextId++,
-      description: description,
-      completed: false,
-    };
-
-    this.todos.push(newTodo);
+    this.todoService.add(this.newTaskDescription);
     this.newTaskDescription = '';
   }
 
   public toggleCompleted(todo: Todo): void {
-    const index = this.todos.findIndex((t: Todo) => t.id === todo.id);
-    if (index !== -1) {
-      this.todos[index].completed = !this.todos[index].completed;
-      this.todos = [...this.todos];
-    }
+    this.todoService.toggle(todo);
   }
 
   public deleteTask(id: number): void {
-    this.todos = this.todos.filter((t: Todo) => t.id !== id);
+    this.todoService.remove(id);
   }
 
   public trackByFn(index: number, todo: Todo): Todo {
