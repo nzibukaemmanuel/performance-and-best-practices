@@ -1,5 +1,4 @@
-import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { ChangeDetectionStrategy, Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subscription } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -9,7 +8,8 @@ import { WelcomeService } from './services/welcome.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [FormsModule],
   template: `
     <div class="max-w-xl mx-auto p-4 bg-gray-50 min-h-screen">
       <header class="text-center mb-8">
@@ -64,7 +64,7 @@ import { WelcomeService } from './services/welcome.service';
 
       <h2 class="text-xl font-semibold text-gray-800 mb-4">Active ({{ stats().pending }})</h2>
       <div class="space-y-3 mb-8">
-        <ng-container *ngFor="let todo of activeTodos()">
+        @for (todo of activeTodos(); track todo.id) {
           <div
             class="flex items-center justify-between bg-white p-4 rounded-xl shadow-md transition duration-150 border border-gray-100 hover:shadow-lg"
           >
@@ -84,20 +84,17 @@ import { WelcomeService } from './services/welcome.service';
               Delete
             </button>
           </div>
-        </ng-container>
-        <div
-          *ngIf="stats().pending === 0 && stats().total > 0"
-          class="text-center text-gray-500 p-4"
-        >
-          All caught up!
-        </div>
+        }
+        @if (stats().pending === 0 && stats().total > 0) {
+          <div class="text-center text-gray-500 p-4">All caught up!</div>
+        }
       </div>
 
       <h2 class="text-xl font-semibold text-gray-800 mb-4">
         Completed ({{ stats().completed }})
       </h2>
       <div class="space-y-3">
-        <ng-container *ngFor="let todo of completedTodos()">
+        @for (todo of completedTodos(); track todo.id) {
           <div
             class="flex items-center justify-between bg-white p-4 rounded-xl shadow-md transition duration-150 border border-gray-100 opacity-70"
           >
@@ -117,13 +114,10 @@ import { WelcomeService } from './services/welcome.service';
               Delete
             </button>
           </div>
-        </ng-container>
-        <div
-          *ngIf="stats().completed === 0 && stats().total > 0"
-          class="text-center text-gray-500 p-4"
-        >
-          No completed tasks yet.
-        </div>
+        }
+        @if (stats().completed === 0 && stats().total > 0) {
+          <div class="text-center text-gray-500 p-4">No completed tasks yet.</div>
+        }
       </div>
     </div>
   `,
