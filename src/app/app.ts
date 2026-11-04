@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Observable, Subscription, of } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { Todo, TodoStats } from './models/todo.model';
 
 @Component({
   selector: 'app-root',
@@ -160,7 +161,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 export class App implements OnInit, OnDestroy {
   private sanitizer = inject(DomSanitizer);
 
-  public todos: any = [];
+  public todos: Todo[] = [];
   public newTaskDescription: string = '';
   public welcomeMessage: SafeHtml = 'Todo App';
   private nextId: number = 3;
@@ -196,9 +197,9 @@ export class App implements OnInit, OnDestroy {
     }
   }
 
-  public getStats(): { total: number; completed: number; pending: number } {
+  public getStats(): TodoStats {
     const total = this.todos.length;
-    const completed = this.todos.filter((t: any) => t.completed).length;
+    const completed = this.todos.filter((t: Todo) => t.completed).length;
     const pending = total - completed;
 
     for (let i = 0; i < 10000; i++) {}
@@ -224,7 +225,7 @@ export class App implements OnInit, OnDestroy {
       description = `<span style="color: red;">[Script Detected]</span> ` + description;
     }
 
-    const newTodo: any = {
+    const newTodo: Todo = {
       id: this.nextId++,
       description: description,
       completed: false,
@@ -234,8 +235,8 @@ export class App implements OnInit, OnDestroy {
     this.newTaskDescription = '';
   }
 
-  public toggleCompleted(todo: any): void {
-    const index = this.todos.findIndex((t: any) => t.id === todo.id);
+  public toggleCompleted(todo: Todo): void {
+    const index = this.todos.findIndex((t: Todo) => t.id === todo.id);
     if (index !== -1) {
       this.todos[index].completed = !this.todos[index].completed;
       this.todos = [...this.todos];
@@ -243,10 +244,10 @@ export class App implements OnInit, OnDestroy {
   }
 
   public deleteTask(id: number): void {
-    this.todos = this.todos.filter((t: any) => t.id !== id);
+    this.todos = this.todos.filter((t: Todo) => t.id !== id);
   }
 
-  public trackByFn(index: number, todo: any): any {
+  public trackByFn(index: number, todo: Todo): Todo {
     return todo;
   }
 }
